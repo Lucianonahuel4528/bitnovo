@@ -4,11 +4,13 @@ import { View, Text, FlatList, TouchableOpacity, StatusBar, Image, StyleSheet } 
 // import { Ionicons } from '@expo/vector-icons';   
 import {getCurrencies} from '../../RootApi.js';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { TextInput } from 'react-native-gesture-handler';
-
-
-const CurrencySelector = () => {
+import { SafeAreaView } from 'react-native-safe-area-context';
+const CurrencySelector = ({navigation}) => {
     const [currencies, setCurrencies] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
+
     const [error, setError] = useState(null);
     // Función para manejar la llamada a la API
     
@@ -17,7 +19,6 @@ const CurrencySelector = () => {
             const data = await getCurrencies(); // Llama a la función getCurrencies
             setCurrencies(data); // Actualiza el estado con los datos obtenidos
         } catch (error) {
-            setError('Error fetching222 currencies'); // Si hay un error, muestra el mensaje
             console.error('Error fetching currencies:', error);
         }
     };
@@ -27,9 +28,21 @@ const CurrencySelector = () => {
         fetchCurrencies(); 
     }, []);
 
+    const filteredCurrencies = currencies.filter(currency =>
+      currency.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      currency.blockchain.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+
+    const handlePress = (item) => {
+      navigation.navigate('Import',{currency:item})
+    };
+
+
     const renderItem = ({ item }) => {
+      console.log("item",item)
         return (
-            <TouchableOpacity style={{ padding: 10 }}>
+            <TouchableOpacity onPress={()=>handlePress(item)} style={{ padding: 10 }}>
                  <View style={styles.cryptoInfo}>
         <Image
           source={{ uri: item.image }}
@@ -46,15 +59,16 @@ const CurrencySelector = () => {
     };
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
           <StatusBar barStyle="dark-content" />
           
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity style={styles.backButton}>
+            <Text style={styles.headerTitle}>Selecciona una divisa</Text>
+
               <Ionicons name="arrow-back-circle-outline" size={24} color="#000" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Selecciona una divisa</Text>
           </View>
     
           {/* Search Bar */}
@@ -63,21 +77,21 @@ const CurrencySelector = () => {
             <TextInput
               style={styles.searchInput}
               placeholder="Buscar"
-              //value={searchQuery}
-              //onChangeText={setSearchQuery}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
               placeholderTextColor="#666"
             />
           </View>
     
           {/* Crypto List */}
           <FlatList
-            data={currencies}
+            data={filteredCurrencies}
             renderItem={renderItem}
             keyExtractor={item => item.blockchain}
             style={styles.cryptoList}
             showsVerticalScrollIndicator={false}
           />
-        </View>
+        </SafeAreaView>
       );
 
 };
