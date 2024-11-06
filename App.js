@@ -1,16 +1,16 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import CurrencySelect from './src/screens/CurrencySelector.js';
-
-const Stack = createStackNavigator();
+import Navigation from './Navigation';
+import {View} from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="CurrencySelect" component={CurrencySelect} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+
+    <View style={{flex: 1}}>
+      <Navigation />
+    </View>
+    </GestureHandlerRootView>
+
   );
 }
