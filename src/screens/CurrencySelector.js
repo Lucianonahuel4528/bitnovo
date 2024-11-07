@@ -7,31 +7,39 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { TextInput } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const currencies = [
+  {
+    id: 'eur',
+    name: 'Euro',
+    subname: 'EUR',
+    symbol:"€",
+    image: require('../../src/images/euro.png')  
+  },
+  {
+    id: 'usd',
+    name: 'Dólar Estadounidense',
+    subname: 'USD',
+    symbol: '$',
+    image: require('../../src/images/dolar.png')  },
+  {
+    id: 'gbp',
+    name: 'Libra Esterlina',
+    subname: 'GBP',
+    symbol: '£',
+    image: require('../../src/images/libra.png')  },
+]
+
 const CurrencySelector = ({navigation}) => {
-    const [currencies, setCurrencies] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
 
     const [error, setError] = useState(null);
     // Función para manejar la llamada a la API
     
-    const fetchCurrencies = async () => {
-        try {
-            const data = await getCurrencies(); // Llama a la función getCurrencies
-            setCurrencies(data); // Actualiza el estado con los datos obtenidos
-        } catch (error) {
-            console.error('Error fetching currencies:', error);
-        }
-    };
-
-    // Llama a fetchCurrencies cuando el componente se monte
-    useEffect(() => {
-        fetchCurrencies(); 
-    }, []);
-
-    const filteredCurrencies = currencies.filter(currency =>
+    const filteredCurrencies = currencies.filter(currency => 
       currency.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      currency.blockchain.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+      currency.code.toLowerCase().includes(searchQuery.toLowerCase())
+    )
 
 
     const handlePress = (item) => {
@@ -41,17 +49,18 @@ const CurrencySelector = ({navigation}) => {
 
     const renderItem = ({ item }) => {
       console.log("item",item)
+      {console.log("item flag",item.flag)}
         return (
             <TouchableOpacity onPress={()=>handlePress(item)} style={{ padding: 10 }}>
                  <View style={styles.cryptoInfo}>
         <Image
-          source={{ uri: item.image }}
-          style={styles.cryptoIcon}
+  source={ item.image }
+  style={styles.cryptoIcon}
           resizeMode="contain"
         />
         <View style={styles.cryptoTextContainer}>
           <Text style={styles.cryptoName}>{item.name}</Text>
-          <Text style={styles.cryptoSymbol}>{item.symbol}</Text>
+          <Text style={styles.cryptoSymbol}>{item.subname}</Text>
         </View>
       </View>
             </TouchableOpacity>
@@ -87,7 +96,7 @@ const CurrencySelector = ({navigation}) => {
           <FlatList
             data={filteredCurrencies}
             renderItem={renderItem}
-            keyExtractor={item => item.blockchain}
+            keyExtractor={item => item.id}
             style={styles.cryptoList}
             showsVerticalScrollIndicator={false}
           />
@@ -149,10 +158,12 @@ const styles = StyleSheet.create({
       flex: 1,
     },
     cryptoIcon: {
-      width: 36,
-      height: 36,
+      width: 50,
+      height: 50,
+      borderRadius:55,
       marginRight: 12,
-    },
+     
+        },
     cryptoTextContainer: {
       flex: 1,
     },
