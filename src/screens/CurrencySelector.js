@@ -8,27 +8,6 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import { TextInput } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const currencies = [
-  {
-    id: 'eur',
-    name: 'Euro',
-    subname: 'EUR',
-    symbol:"€",
-    image: require('../../src/images/euro.png')  
-  },
-  {
-    id: 'usd',
-    name: 'Dólar Estadounidense',
-    subname: 'USD',
-    symbol: '$',
-    image: require('../../src/images/dolar.png')  },
-  {
-    id: 'gbp',
-    name: 'Libra Esterlina',
-    subname: 'GBP',
-    symbol: '£',
-    image: require('../../src/images/libra.png')  },
-]
 
 const CurrencySelector = ({navigation}) => {
     const [searchQuery, setSearchQuery] = useState('');

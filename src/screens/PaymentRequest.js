@@ -1,11 +1,90 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Share, StyleSheet, Linking } from 'react-native';
-import { Mail, Share2, WhatsApp } from "lucide-react-native";
+import React,{useEffect,useState} from 'react';
+import { View, Text, TouchableOpacity, Share,SafeAreaView, StyleSheet, Linking,Alert,Image,Modal } from 'react-native';
+// import { Mail, Share2, WhatsApp } from "lucide-react-native";
+import Icon from 'react-native-vector-icons/Fontisto'
+import Navigation from '../../Navigation';
 
-
-const PaymentRequest =({route} )=> {
+const PaymentRequest =({route,navigation} )=> {
     const {data,amount} = route.params;
-    console.log("dataa ===>>>",data)
+    console.log("data",data.identifier)
+    const [paymentUrl, setPaymentUrl] = useState('');
+    const [socket, setSocket] = useState(null);
+    const [statusMessage, setStatusMessage] = useState('');
+    const [modalSuccess,setModalSuccess] = useState(false)
+ 
+    const toggleModalSuceess = () => {
+      navigation.navigate("CreatePayment")
+      setModalSuccess(false);
+    };
+
+    /* Se crea un websocket el cual se puede
+    escuchar para recibir notificaciones de cambio de estado*/ 
+    useEffect(() => {
+      if (data.identifier) {
+        const newSocket = new WebSocket(`wss://payments.pre-bnvo.com/ws/merchant/${data.identifier}`);
+
+        newSocket.onopen = () => {
+          console.log('Conexión WebSocket abierta');
+          setStatusMessage('Conexión establecida');
+        };
+
+      //   // Simulación de mensajes entrantes (reemplaza con tu lógica real)
+      // const simulateMessage = () => {
+      //   setTimeout(() => {
+      //     const simulatedData = {
+      //       // Ejemplo de datos del mensaje
+      //       status: 'pending', // Estado del pago (pendiente, completado, etc.)
+      //       message: 'Simulating message from server',
+      //     };
+      //     newSocket.onmessage({ data: JSON.stringify(simulatedData) });
+      //      simulateMessage(); // Descomenta para simular mensajes continuos
+      //   }, 8000); // Simula un mensaje cada 2 segundos
+      // };
+
+        newSocket.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          console.log("data onmessage",data)
+          handleSocketMessage(data);
+        };
+
+        newSocket.onerror = (error) => {
+          console.error('Error en WebSocket:', error);
+          setStatusMessage('Error en la conexión');
+        };
+
+        newSocket.onclose = () => {
+          console.log('Conexión WebSocket cerrada');
+          setStatusMessage('Conexión cerrada');
+        };
+
+        setSocket(newSocket);
+        //simulateMessage(); // Inicia la simulación de mensajes
+
+        return () => {
+          newSocket.close();
+        };
+      }
+    }, [data.identifier]);
+
+    const handleSocketMessage = (data) => {
+      // Manejo de diferentes tipos de mensajes
+      console.log("data status",data.status)
+      switch (data.status) {
+        case 'payment_received':
+          Alert.alert('Pago recibido', 'Tu pago ha sido recibido con éxito.');
+          break;
+        case 'CA':
+          //Alert.alert('Pago fallido', 'Hubo un problema con tu pago. Inténtalo de nuevo.');
+          setModalSuccess(true)
+          break;
+        default:
+          console.log('Mensaje desconocido:', data);
+      }
+      
+    };
+    /*Fin websocket*/
+
+  
   const handleShare = async (method) => {
     try {
       switch (method) {
@@ -39,10 +118,10 @@ const PaymentRequest =({route} )=> {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.iconContainer}>
-          <Mail size={24} color="#3B82F6" /> 
+          {/* <Mail name={'email'} size={24} color="#3B82F6" />  */}
         </View>
         <Text style={styles.title}>Solicitud de pago</Text>
         <Text style={styles.amount}>{amount/*.toFixed(2)*/} €</Text> 
@@ -50,23 +129,31 @@ const PaymentRequest =({route} )=> {
       </View>
 
       <View style={styles.optionsContainer}>
+
         <TouchableOpacity style={styles.option} onPress={handleCopyLink}>
-          {/* <Text style={styles.optionText}>{data.web_url}</Text> */}
+        <Icon name={'link'} size={24} color="#035AC5" /> 
+
+           <Text style={styles.optionText}> {data.web_url}</Text> 
           <View style={styles.copyButton}>
-            {/* <Share2 size={20} color="#FFFFFF" /> */}
+          <Icon name={'qrcode'} size={24} color="#035AC5" /> 
           </View>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.option} onPress={() => handleShare('email')}>
-          <Text style={styles.optionText}>Enviar por correo electrónico</Text>
+        <Icon name={'email'} size={24} color="#035AC5" /> 
+
+          <Text style={styles.optionText}> Enviar por correo electrónico</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.option} onPress={() => handleShare('whatsapp')}>
-          <Text style={styles.optionText}>Enviar a número de WhatsApp</Text>
+        <Icon name={'whatsapp'} size={24} color="#035AC5" /> 
+
+          <Text style={styles.optionText}> Enviar a número de WhatsApp</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.option} onPress={() => handleShare('general')}>
-          <Text style={styles.optionText}>Compartir con otras aplicaciones</Text>
+        <Icon name={'share-a'} size={24} color="#035AC5" /> 
+          <Text style={styles.optionText}> Compartir con otras aplicaciones</Text>
         </TouchableOpacity>
       </View>
 
@@ -74,7 +161,39 @@ const PaymentRequest =({route} )=> {
         <Text style={styles.newRequestText}>Nueva solicitud</Text>
         {/* <Mail size={16} color="#3B82F6" /> */}
       </TouchableOpacity>
-    </View>
+
+
+          
+        {/* Modal CurrencySelector     */}
+
+ <Modal 
+ animationType="slide" 
+ visible={modalSuccess} 
+ presentationStyle="fullScreen" >
+ <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <Image source={require('../../src/images/bitnovo-logo.png')} style={styles.logo} />
+            <View style={styles.divider} />
+
+            <View style={styles.successContainer}>
+              <Image source={require('../../src/images/success-icon.png')} style={styles.successIcon} />
+              <Text style={styles.successText}>Pago recibido</Text>
+              <Text style={styles.successSubtext}>El pago se ha confirmado con éxito</Text>
+            </View>
+            <TouchableOpacity onPress={()=>toggleModalSuceess()} style={styles.finishButton}>
+              <Text style={styles.finishText}>Finalizar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+ </Modal>
+
+
+
+    
+
+  </SafeAreaView>
+
   );
 }
 
@@ -149,6 +268,66 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#3B82F6',
     fontWeight: '500',
+  },
+  centeredView: {
+    flex: 1,
+    backgroundColor: 'white',
+    padding: 20,
+  },
+  modalView: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 20,
+    paddingBottom: 20,
+  },
+  logo: {
+    width: '100%',
+    height: 50,
+    resizeMode: 'contain',
+    marginBottom: 16,
+  },
+  divider: {
+    width: '100%',
+    height: 2,
+    backgroundColor: '#E5E7EB',
+  },
+  successContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successIcon: {
+    width: 80,
+    height: 80,
+    resizeMode: 'contain',
+    backgroundColor: '#E8F5E9',
+    borderRadius: 40,
+    padding: 20,
+    marginBottom: 24,
+  },
+  successText: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  successSubtext: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  finishButton: {
+    width: '100%',
+    backgroundColor: '#1A73E8',
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  finishText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
