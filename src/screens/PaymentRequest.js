@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, Share, SafeAreaView, StyleSheet, FlatList, Linking, Alert, Image, Modal, TextInput } from 'react-native';
 import Icon from 'react-native-vector-icons/Fontisto';
+import MoneyTime from 'react-native-vector-icons/FontAwesome5';
 import Wallet from 'react-native-vector-icons/MaterialCommunityIcons';
 import ArrowLeft from 'react-native-vector-icons/EvilIcons';
 import IconDown from 'react-native-vector-icons/Entypo';
-
+import Search from 'react-native-vector-icons/AntDesign';
 import { useWebSocket } from '../contexts/WebSocketContext';
 import SuccessModal from '../components/SuccessModal';
 import { getCountries } from '../../RootApi';
@@ -116,25 +117,14 @@ const PaymentRequest = ({ route, navigation }) => {
     }
   };
 
-  const handleCopyLink = async () => {
-    try {
-      await Share.share({
-        message: data.web_url,
-        url: data.web_url,
-      });
-    } catch (error) {
-      //console.error('Error copying link:', error);
-    }
-  };
-
   const handleQR = () => {
     navigation.navigate("QRPayment", { url: data.web_url })
 
   }
 
   const handleSendWp =()=>{
-    setModalSend(true)
     if (phoneNumber) {
+      setModalSend(true)
       const url = `https://wa.me/${selectedCountry.code}${phoneNumber}?text=${encodeURIComponent(data.web_url)}`;
       Linking.openURL(url);
     } else {
@@ -147,11 +137,16 @@ const PaymentRequest = ({ route, navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.iconContainer}>
-          {/* <Mail name={'email'} size={24} color="#3B82F6" />  */}
-        </View>
+        
         <Text style={styles.title}>Solicitud de pago</Text>
-        <Text style={styles.amount}>{amount/*.toFixed(2)*/} €</Text>
+        <View >
+          <View style={ {flexDirection: 'row'}}>
+        <View style={styles.iconContainer}>
+           <MoneyTime name={'business-time'} size={34} color="#035AC5" />  
+        </View>
+          <Text style={styles.amount}>{amount} €</Text>
+          </View>
+        </View>
         <Text style={styles.subtitle}>Comparte el enlace de pago con el cliente</Text>
       </View>
 
@@ -236,17 +231,20 @@ const PaymentRequest = ({ route, navigation }) => {
               </Text>
             </View>
 
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: '#F5F5F5',
-                borderRadius: 8,
-                padding: 12,
-                marginBottom: 16,
-              }}
-            >
-              {/* <Search size={20} color="#666" style={{ marginRight: 8 }} /> */}
+            <View            
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 8,
+                  padding: 12,
+                  marginBottom: 16,
+                  borderWidth: 1,  
+                  borderColor: '#E5E9F2',  
+    
+                }}
+              >
+                 <Search name={"search1"} size={20} color="#666" style={{ marginRight: 8 }} /> 
               <TextInput
                 placeholder="Buscar"
                 value={searchQuery}
@@ -325,27 +323,30 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#E5E5E5'
   },
   iconContainer: {
-    backgroundColor: '#EBF5FF',
+    backgroundColor: '#D3DCE6',
     padding: 12,
     borderRadius: 12,
     marginBottom: 12,
+    marginRight:10
   },
   title: {
-    fontSize: 16,
-    color: '#374151',
+    fontSize: 18,
+    color: '#647184',
     marginBottom: 8,
   },
   amount: {
-    fontSize: 24,
+    fontSize: 44,
     fontWeight: '700',
-    color: '#111827',
+    color: '#002859',
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: 16,
+    color: '#647184',
   },
   optionsContainer: {
     gap: 12,
@@ -418,6 +419,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#D3DCE6',
     paddingVertical: 16,
     borderRadius: 8,
+    
   },
   newRequestText: {
     fontSize: 14,
