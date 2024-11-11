@@ -1,20 +1,23 @@
-import React from 'react';
+import React,{useState} from 'react';
 //import {Image} from 'react-native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 //Screens
 import CreatePayment from '../src/screens/CreatePayment';
 import PaymentRequest from '../src/screens/PaymentRequest';
+import QRPayment from '../src/screens/QRPayment';
 
 
 const StackPublic = createNativeStackNavigator();
 
 export default function Public() {
+
   return (
-    <StackPublic.Navigator
+
+  <StackPublic.Navigator
       initialRouteName="CreatePayment"
       //screenOptions={themeApp[modo].fondoBarra}
     >
-      <StackPublic.Screen
+    <StackPublic.Screen
         name="CreatePayment"
         component={CreatePayment}
         options={{
@@ -23,8 +26,8 @@ export default function Public() {
           headerShown: false,
         }}
       />
-     
-        <StackPublic.Screen
+
+      <StackPublic.Screen
         name="PaymentRequest"
         component={PaymentRequest}
         options={{
@@ -33,7 +36,17 @@ export default function Public() {
           headerShown: false,
         }}
       />
-     
+
+      <StackPublic.Screen
+              name="QRPayment"
+              component={QRPayment}
+              options={{
+                title: 'QRPayment',
+                headerBackVisible: false,
+                headerShown: false,
+              }}
+            />
     </StackPublic.Navigator>
+
   );
 }
