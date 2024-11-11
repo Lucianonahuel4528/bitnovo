@@ -1,11 +1,14 @@
 import React from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import Public from './navigation/Public';
-export default function Navigation() {
+import {WebSocketProvider} from './src/contexts/WebSocketContext';
 
+export default function Navigation() {
   return (
-    <NavigationContainer>
-     <Public /> 
-    </NavigationContainer>
+    <WebSocketProvider>
+      <NavigationContainer>
+        <Public />
+      </NavigationContainer>
+    </WebSocketProvider>
   );
 }
