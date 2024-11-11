@@ -17,8 +17,23 @@ export const getCurrencies = async () => {
     }
 };
 
+export const getCountries = async () => {
+  try {
+    const countries = await axios.get("https://restcountries.com/v3.1/all")
+    const response = countries.data.map((country,index) => ({
+      id: index+1,
+      name: country.name.common,
+      code: country.idd.root + (country.idd.suffixes ? country.idd.suffixes[0] : ""),
+      flag: country.flags.png // Puedes obtener la bandera en formato PNG o SVG
+    }));
+    return response
+  } catch (error) {
+    //console.log("error",error)
+  }
+}
 
-  export const createOrder = async (orderData) => {
+
+export const createOrder = async (orderData) => {
     try {
       const formData = new FormData();        
         formData.append('expected_output_amount', orderData.expected_output_amount); 
