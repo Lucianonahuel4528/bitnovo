@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react'
-import { View, Text, TouchableOpacity,TextInput,StyleSheet, SafeAreaView,StatusBar,FlatList,KeyboardType,Image,Modal } from 'react-native'
+import { View, Text, TouchableOpacity,TextInput,StyleSheet, SafeAreaView,StatusBar,FlatList,KeyboardType,Image,Modal, ActivityIndicator } from 'react-native'
 import { createOrder,getCurrencies } from '../../RootApi.js';
 import IconDown from 'react-native-vector-icons/Entypo'; 
 import ArrowLeft from 'react-native-vector-icons/EvilIcons'; 
-
+import Search from 'react-native-vector-icons/AntDesign'
 
 
 const CreatePayment =({route,navigation} )=> {
@@ -12,6 +12,8 @@ const CreatePayment =({route,navigation} )=> {
   const [isAmountFocused, setIsAmountFocused] = useState(true)
   const [showCurrencyModal, setShowCurrencyModal] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [isLoading, setIsLoading] = useState(false); 
+
   const currencies = [
     {
       id: 'eur',
@@ -59,23 +61,24 @@ const CreatePayment =({route,navigation} )=> {
   };
 
   const handleContinuePay = async () => {
-    // Add your continue logic here
-    //console.log('Amount:', amount, 'Description:', description , "currency",currency)
- 
+    
      const orderData = {
       expected_output_amount:amount,
       //fiat:currency.subname
      }
+     setIsLoading(true); // Activa la carga al iniciar
+
   
        try {
-         const response = await createOrder(orderData); // Llamada a la API
+         const response = await createOrder(orderData); 
           console.log('Order response:', response);
-         //const currencies= await getCurrencies()
-       // Navegación a la siguiente pantalla pasando la respuesta de la API
+         
        navigation.navigate('PaymentRequest', { data: response , amount });
         
      } catch (error) {
          console.error('Error al crear la orden:', error);
+       } finally {
+        setIsLoading(false)
        }
     
   
@@ -83,8 +86,12 @@ const CreatePayment =({route,navigation} )=> {
 
   return (
     <SafeAreaView style={styles.container}>
+       {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#0000ff" />
+        </View>
+      )}
       <View style={styles.header}>
-        {console.log("amount length",amount,amount > 0.00 )}
         <Text style={styles.headerTitle}>{amount > "0.00" ?   "Importe a pagar" :"Crear pago" }</Text>
         <TouchableOpacity style={styles.currencySelector} 
         onPress={() => setShowCurrencyModal(true)}>
@@ -157,13 +164,16 @@ const CreatePayment =({route,navigation} )=> {
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: '#F5F5F5',
+              backgroundColor: '#FFFFFF',
               borderRadius: 8,
               padding: 12,
               marginBottom: 16,
+              borderWidth: 1,  
+              borderColor: '#E5E9F2',  
+
             }}
           >
-            {/* <Search size={20} color="#666" style={{ marginRight: 8 }} /> */}
+             <Search name={"search1"} size={20} color="#666" style={{ marginRight: 8 }} /> 
             <TextInput
               placeholder="Buscar"
               value={searchQuery}
@@ -217,7 +227,7 @@ const CreatePayment =({route,navigation} )=> {
     </Modal>
   
     </SafeAreaView>
-  
+            
 
 )
 
@@ -229,6 +239,17 @@ const CreatePayment =({route,navigation} )=> {
 }
 
 const styles = StyleSheet.create({
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
