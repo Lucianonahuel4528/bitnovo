@@ -1,90 +1,98 @@
-import React,{useEffect,useState} from 'react';
-import { View, Text, TouchableOpacity, Share,SafeAreaView, StyleSheet, Linking,Alert,Image,Modal } from 'react-native';
-// import { Mail, Share2, WhatsApp } from "lucide-react-native";
-import Icon from 'react-native-vector-icons/Fontisto'
-import Navigation from '../../Navigation';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, Share, SafeAreaView, StyleSheet, FlatList, Linking, Alert, Image, Modal, TextInput } from 'react-native';
+import Icon from 'react-native-vector-icons/Fontisto';
+import Wallet from 'react-native-vector-icons/MaterialCommunityIcons';
+import ArrowLeft from 'react-native-vector-icons/EvilIcons';
+import IconDown from 'react-native-vector-icons/Entypo';
 
-const PaymentRequest =({route,navigation} )=> {
-    const {data,amount} = route.params;
-    console.log("data",data.identifier)
-    const [paymentUrl, setPaymentUrl] = useState('');
-    const [socket, setSocket] = useState(null);
-    const [statusMessage, setStatusMessage] = useState('');
-    const [modalSuccess,setModalSuccess] = useState(false)
- 
-    const toggleModalSuceess = () => {
-      navigation.navigate("CreatePayment")
-      setModalSuccess(false);
+import { useWebSocket } from '../contexts/WebSocketContext';
+import SuccessModal from '../components/SuccessModal';
+import { getCountries } from '../../RootApi';
+import SendModal from '../components/SendModal';
+
+const PaymentRequest = ({ route, navigation }) => {
+  const { data, amount } = route.params;
+  const [modalSuccess, setModalSuccess] = useState(false)
+  const [modalSend,setModalSend] = useState(false)
+  const [showCountry, setShowCountry] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const { dataEvent, createWebSocketConnection, removeListeners, closeConnection } = useWebSocket();  // Accedemos a la conexión y funciones del contexto
+  const [showInput, setShowInput] = useState(false);
+  const [countries, setCountries] = useState("")
+  const [selectedCountry, setSelectedCountry] = useState({ "code": "+34", "flag": "https://flagcdn.com/w320/es.png", "id": 114, "name": "Spain" })
+  const [phoneNumber, setPhoneNumber] = useState("")
+
+  const toggleModalSuceess = () => {
+    setModalSuccess(false);
+    removeListeners()
+    navigation.navigate("CreatePayment")
+  };
+
+  const toggleModalSend =()=>{
+    setModalSend(false)
+  }
+
+  const newRequest = () => {
+    removeListeners()
+    navigation.navigate("CreatePayment")
+  }
+
+  useEffect(() => {
+    if (data?.identifier) {
+      // Crear la conexión WebSocket solo si el identificador cambia
+      createWebSocketConnection(data.identifier);
+    }
+
+    // Limpiar la conexión cuando el componente se desmonte o cuando el identificador cambie
+    return () => {
+      closeConnection();
     };
+  }, [data?.identifier]);  // Solo depende de 'data?.identifier'
 
-    /* Se crea un websocket el cual se puede
-    escuchar para recibir notificaciones de cambio de estado*/ 
-    useEffect(() => {
-      if (data.identifier) {
-        const newSocket = new WebSocket(`wss://payments.pre-bnvo.com/ws/merchant/${data.identifier}`);
 
-        newSocket.onopen = () => {
-          console.log('Conexión WebSocket abierta');
-          setStatusMessage('Conexión establecida');
-        };
+  useEffect(() => {
+    console.log("entras", dataEvent)
+    if (dataEvent) {
 
-      //   // Simulación de mensajes entrantes (reemplaza con tu lógica real)
-      // const simulateMessage = () => {
-      //   setTimeout(() => {
-      //     const simulatedData = {
-      //       // Ejemplo de datos del mensaje
-      //       status: 'pending', // Estado del pago (pendiente, completado, etc.)
-      //       message: 'Simulating message from server',
-      //     };
-      //     newSocket.onmessage({ data: JSON.stringify(simulatedData) });
-      //      simulateMessage(); // Descomenta para simular mensajes continuos
-      //   }, 8000); // Simula un mensaje cada 2 segundos
-      // };
+      handleSocketMessage(dataEvent)
+    }
+  }, [dataEvent])
 
-        newSocket.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          console.log("data onmessage",data)
-          handleSocketMessage(data);
-        };
 
-        newSocket.onerror = (error) => {
-          console.error('Error en WebSocket:', error);
-          setStatusMessage('Error en la conexión');
-        };
+  const handleSocketMessage = (dataEvent) => {
+    switch (dataEvent.status) {
+      case 'CO':
+        setModalSuccess(true)
+        break;
+      case 'CA':
+        Alert.alert('Pago cancelado', 'Genere una nueva solicitud');
+        break;
+      default:
+        Alert.alert('Pago fallido', 'Hubo un problema con tu pago. Inténtalo de nuevo.');
+    }
 
-        newSocket.onclose = () => {
-          console.log('Conexión WebSocket cerrada');
-          setStatusMessage('Conexión cerrada');
-        };
+  };
 
-        setSocket(newSocket);
-        //simulateMessage(); // Inicia la simulación de mensajes
+  const handleShareWApp = () => {
 
-        return () => {
-          newSocket.close();
-        };
-      }
-    }, [data.identifier]);
+  }
 
-    const handleSocketMessage = (data) => {
-      // Manejo de diferentes tipos de mensajes
-      console.log("data status",data.status)
-      switch (data.status) {
-        case 'payment_received':
-          Alert.alert('Pago recibido', 'Tu pago ha sido recibido con éxito.');
-          break;
-        case 'CA':
-          //Alert.alert('Pago fallido', 'Hubo un problema con tu pago. Inténtalo de nuevo.');
-          setModalSuccess(true)
-          break;
-        default:
-          console.log('Mensaje desconocido:', data);
-      }
-      
-    };
-    /*Fin websocket*/
+  const handleCountries = async () => {
+    const dataCountries = await getCountries()
+    setCountries(dataCountries)
+    setShowCountry(true)
+  }
 
-  
+
+  const handleCountrySelect = (country) => {
+    setSelectedCountry(country)
+    setShowCountry(false)
+  }
+
+
+
+
+
   const handleShare = async (method) => {
     try {
       switch (method) {
@@ -95,14 +103,16 @@ const PaymentRequest =({route,navigation} )=> {
           await Linking.openURL(`mailto:?subject=Solicitud de pago&body=${data.web_url}`);
           break;
         case 'general':
+      
           await Share.share({
             message: data.web_url,
             url: data.web_url,
           });
-          break;
+       
+         break;
       }
     } catch (error) {
-      console.error('Error sharing:', error);
+      //console.error('Error sharing:', error);
     }
   };
 
@@ -113,9 +123,26 @@ const PaymentRequest =({route,navigation} )=> {
         url: data.web_url,
       });
     } catch (error) {
-      console.error('Error copying link:', error);
+      //console.error('Error copying link:', error);
     }
   };
+
+  const handleQR = () => {
+    navigation.navigate("QRPayment", { url: data.web_url })
+
+  }
+
+  const handleSendWp =()=>{
+    setModalSend(true)
+    if (phoneNumber) {
+      const url = `https://wa.me/${selectedCountry.code}${phoneNumber}?text=${encodeURIComponent(data.web_url)}`;
+      Linking.openURL(url);
+    } else {
+      alert("Por favor ingresa un número de teléfono válido.");
+    }
+  }
+
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -124,75 +151,167 @@ const PaymentRequest =({route,navigation} )=> {
           {/* <Mail name={'email'} size={24} color="#3B82F6" />  */}
         </View>
         <Text style={styles.title}>Solicitud de pago</Text>
-        <Text style={styles.amount}>{amount/*.toFixed(2)*/} €</Text> 
+        <Text style={styles.amount}>{amount/*.toFixed(2)*/} €</Text>
         <Text style={styles.subtitle}>Comparte el enlace de pago con el cliente</Text>
       </View>
 
       <View style={styles.optionsContainer}>
+        <TouchableOpacity style={styles.option} onPress={() => handleQR()}>
+          <Icon name={'link'} size={24} color="#035AC5" />
 
-        <TouchableOpacity style={styles.option} onPress={handleCopyLink}>
-        <Icon name={'link'} size={24} color="#035AC5" /> 
-
-           <Text style={styles.optionText}> {data.web_url}</Text> 
+          <Text style={styles.optionText}> {data.web_url}</Text>
           <View style={styles.copyButton}>
-          <Icon name={'qrcode'} size={24} color="#035AC5" /> 
+            <Icon name={'qrcode'} size={24} color="#035AC5" />
           </View>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.option} onPress={() => handleShare('email')}>
-        <Icon name={'email'} size={24} color="#035AC5" /> 
+          <Icon name={'email'} size={24} color="#035AC5" />
 
           <Text style={styles.optionText}> Enviar por correo electrónico</Text>
         </TouchableOpacity>
+        {!showInput ? (
+          <TouchableOpacity style={styles.option} onPress={() => (setShowInput(true))}>
+            <Icon name={'whatsapp'} size={24} color="#035AC5" />
+            <Text style={styles.optionText}> Enviar a número de WhatsApp </Text>
 
-        <TouchableOpacity style={styles.option} onPress={() => handleShare('whatsapp')}>
-        <Icon name={'whatsapp'} size={24} color="#035AC5" /> 
+          </TouchableOpacity>)
+          : (
+            <TouchableOpacity style={styles.optionInput} onPress={() => handleCountries()}>
+              <Icon name={'whatsapp'} size={24} color="#035AC5" />
+              <Text style={styles.optionTextInput}> {selectedCountry.code} <IconDown name="chevron-small-down" size={24} color="#003366" /></Text>
+              <TextInput
+                style={styles.inputText}
+                placeholder="Número de celular"
+                placeholderTextColor="#ccc"
+                keyboardType="phone-pad"
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+              />
+              <TouchableOpacity style={styles.sendButton } onPress={()=>handleSendWp()}>
+                <Text style={styles.textSendButton }>Enviar</Text>
+              </TouchableOpacity>
 
-          <Text style={styles.optionText}> Enviar a número de WhatsApp</Text>
-        </TouchableOpacity>
+            </TouchableOpacity>
+
+
+          )}
+
 
         <TouchableOpacity style={styles.option} onPress={() => handleShare('general')}>
-        <Icon name={'share-a'} size={24} color="#035AC5" /> 
+          <Icon name={'share-a'} size={24} color="#035AC5" />
           <Text style={styles.optionText}> Compartir con otras aplicaciones</Text>
         </TouchableOpacity>
       </View>
+      <View style={styles.containerNewRequest}>
 
-      <TouchableOpacity style={styles.newRequest}>
-        <Text style={styles.newRequestText}>Nueva solicitud</Text>
-        {/* <Mail size={16} color="#3B82F6" /> */}
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.newRequest} onPress={() => newRequest()}>
+          <Text style={styles.newRequestText}>Nueva solicitud <Wallet name='wallet-plus-outline' size={16} color="#3B82F6" /> </Text>
+
+        </TouchableOpacity>
+      </View>
+
+      {/* Modal pago realizado con exito    */}
+      <SuccessModal visible={modalSuccess} onClose={toggleModalSuceess} />
+      {/* Modal pago realizado con exito    */}
 
 
-          
-        {/* Modal CurrencySelector     */}
-
- <Modal 
- animationType="slide" 
- visible={modalSuccess} 
- presentationStyle="fullScreen" >
- <View style={styles.centeredView}>
-          <View style={styles.modalView}>
-            <Image source={require('../../src/images/bitnovo-logo.png')} style={styles.logo} />
-            <View style={styles.divider} />
-
-            <View style={styles.successContainer}>
-              <Image source={require('../../src/images/success-icon.png')} style={styles.successIcon} />
-              <Text style={styles.successText}>Pago recibido</Text>
-              <Text style={styles.successSubtext}>El pago se ha confirmado con éxito</Text>
+      {/* Modal para elegir el pais del celular */}
+      <Modal
+        animationType="slide"
+        visible={showCountry}
+        presentationStyle="fullScreen"
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
+          <View style={{ padding: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+              <TouchableOpacity
+                onPress={() => setShowCountry(false)}
+                style={{ padding: 8, marginRight: 16 }}
+              >
+                <ArrowLeft name={"arrow-left"} size={35} color="#002859" />
+              </TouchableOpacity>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#002859' }}>
+                Seleccionar país
+              </Text>
             </View>
-            <TouchableOpacity onPress={()=>toggleModalSuceess()} style={styles.finishButton}>
-              <Text style={styles.finishText}>Finalizar</Text>
-            </TouchableOpacity>
+
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: '#F5F5F5',
+                borderRadius: 8,
+                padding: 12,
+                marginBottom: 16,
+              }}
+            >
+              {/* <Search size={20} color="#666" style={{ marginRight: 8 }} /> */}
+              <TextInput
+                placeholder="Buscar"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                style={{ flex: 1, fontSize: 16 }}
+              />
+            </View>
+
+            <FlatList
+              data={countries ? countries.filter(country =>
+                country.name.toLowerCase().includes(searchQuery.toLowerCase())
+              ) : []}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => handleCountrySelect(item)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    padding: 16,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#F0F0F0',
+                  }}
+                >
+                  {console.log("item", item)}
+                  <View style={styles.countryInfo}>
+                    <Image
+                      source={{ uri: item.flag }}
+                      style={styles.countryIcon}
+                      resizeMode="contain"
+                    />
+                    <View style={styles.countryTextContainer}>
+                      <Text style={styles.countryName}>{item.code}</Text>
+                      <Text style={styles.countrySymbol}>{item.name}</Text>
+                    </View>
+                  </View>
+                  {selectedCountry.id === item.id && (
+                    <View
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 10,
+                        backgroundColor: '#007AFF',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
+                    />
+
+                  )}
+
+                </TouchableOpacity>
+              )}
+            />
           </View>
-        </View>
+        </SafeAreaView>
+      </Modal>
+      
+      {/*Modal enviado por whatsapp*/}
+      <SendModal  visible={modalSend} onClose={toggleModalSend} />
+     
 
- </Modal>
 
 
 
-    
-
-  </SafeAreaView>
+    </SafeAreaView>
 
   );
 }
@@ -249,86 +368,88 @@ const styles = StyleSheet.create({
   optionText: {
     flex: 1,
     fontSize: 14,
+    color: '#374151'
+  },
+  optionInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+
+  },
+  optionTextInput: {
+    flex: 0.7,
+    fontSize: 14,
     color: '#374151',
+    marginLeft:5
+  },
+  inputText: {
+    flex: 1.8,
+    fontSize: 14, // Match the optionText font size
+    color: '#374151', // Match the optionText color
+  },
+  sendButton: {    
+      marginLeft: 4,
+      padding: 4,
+      borderRadius: 8,
+      alignItems: 'center',    
+      backgroundColor:"#035AC5"    
+  },
+  textSendButton:{
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   copyButton: {
     backgroundColor: '#3B82F6',
     padding: 8,
     borderRadius: 8,
   },
+  containerNewRequest: {
+    flex: 0.8,
+    justifyContent: 'flex-end',
+
+  },
   newRequest: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 'auto',
+    width: '95%',
+    backgroundColor: '#D3DCE6',
     paddingVertical: 16,
+    borderRadius: 8,
   },
   newRequestText: {
     fontSize: 14,
     color: '#3B82F6',
     fontWeight: '500',
   },
-  centeredView: {
-    flex: 1,
-    backgroundColor: 'white',
-    padding: 20,
-  },
-  modalView: {
-    flex: 1,
+  countryInfo: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 20,
-    paddingBottom: 20,
+    flex: 1
   },
-  logo: {
-    width: '100%',
-    height: 50,
-    resizeMode: 'contain',
-    marginBottom: 16,
+  countryIcon: {
+    width: 40,
+    height: 40,
+    marginRight: 12,
   },
-  divider: {
-    width: '100%',
-    height: 2,
-    backgroundColor: '#E5E7EB',
-  },
-  successContainer: {
+  countryTextContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  successIcon: {
-    width: 80,
-    height: 80,
-    resizeMode: 'contain',
-    backgroundColor: '#E8F5E9',
-    borderRadius: 40,
-    padding: 20,
-    marginBottom: 24,
-  },
-  successText: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 8,
-  },
-  successSubtext: {
+  countryName: {
     fontSize: 16,
-    color: '#6B7280',
-    textAlign: 'center',
+    fontWeight: '500',
+    color: '#000',
   },
-  finishButton: {
-    width: '100%',
-    backgroundColor: '#1A73E8',
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  finishText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  countrySymbol: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  }
+
 });
+
+
 
 export default PaymentRequest;
