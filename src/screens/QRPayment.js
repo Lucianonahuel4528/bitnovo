@@ -70,10 +70,10 @@ const QRPayment =({route,navigation} )=> {
             backgroundColor="white"
             color="#000"
           />
-          {/* <Image
-            source={require('../../assets/bitnovo-pay-logo.png')}
+           <Image
+            source={require('../images/bpay.png')}
             style={styles.qrLogo}
-          /> */}
+          /> 
         </View>
 
         {/* <Text style={styles.amount}>
@@ -141,9 +141,10 @@ const styles = StyleSheet.create({
   },
   qrLogo: {
     position: 'absolute',
-    width: 60,
-    height: 60,
+    width: "25%",
+    height: "25%",
     resizeMode: 'contain',
+    backgroundColor:'transparent'
   },
   amount: {
     color: 'white',
